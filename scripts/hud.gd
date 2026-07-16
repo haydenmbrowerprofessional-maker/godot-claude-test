@@ -1,34 +1,24 @@
 extends CanvasLayer
-## Score display, status messages, and the start button.
-
-signal start_game
+## In-game UI: selection drag rectangle, status line, end-of-game message.
 
 
-func show_message(text: String) -> void:
-	$Message.text = text
-	$Message.show()
-	$MessageTimer.start()
+func set_drag_rect(rect: Rect2) -> void:
+	$SelectionRect.set_drag(rect)
 
 
-func show_game_over() -> void:
-	show_message("Game Over")
-	await $MessageTimer.timeout
-
-	$Message.text = "Creep Dodge!"
-	$Message.show()
-	await get_tree().create_timer(1.0).timeout
-
-	$StartButton.show()
+func clear_drag() -> void:
+	$SelectionRect.clear()
 
 
-func update_score(score: int) -> void:
-	$ScoreLabel.text = str(score)
+func set_selected_count(count: int) -> void:
+	$InfoLabel.text = "Selected: %d    |    LMB drag: select   RMB: move / attack   WASD: pan   Wheel: zoom" % count
 
 
-func _on_start_button_pressed() -> void:
-	$StartButton.hide()
-	start_game.emit()
+func show_end(message: String) -> void:
+	$CenterMessage.text = message
+	$CenterMessage.show()
+	$RestartButton.show()
 
 
-func _on_message_timer_timeout() -> void:
-	$Message.hide()
+func _on_restart_button_pressed() -> void:
+	get_tree().reload_current_scene()

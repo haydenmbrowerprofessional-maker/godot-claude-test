@@ -1,6 +1,6 @@
-# Creep Dodge
+# Mini Command
 
-A small arcade game built in **Godot 4**: creeps swarm in from the edges of the screen — dodge them for as long as you can. Score is seconds survived.
+A small real-time strategy game built in **Godot 4**. Select your squad, issue orders, and wipe out the red team. Early days — see the roadmap below.
 
 ## How to run
 
@@ -10,37 +10,70 @@ A small arcade game built in **Godot 4**: creeps swarm in from the edges of the 
 
 ## Controls
 
-| Key | Action |
+| Input | Action |
 |---|---|
-| Arrow keys | Move |
-| Start button | Begin / restart |
+| Left-click / drag | Select unit / box-select squad (Shift adds) |
+| Right-click ground | Move selected units (formation spread) |
+| Right-click enemy | Attack target |
+| WASD / arrows | Pan camera |
+| Mouse wheel | Zoom |
 
-## Project structure
+Units also auto-attack enemies that wander into aggro range. Destroy all red units to win.
 
-The game follows Godot's scene-composition idiom: reusable scenes are instanced (cloned), never assembled node-by-node in code.
+## Architecture
+
+Reusable scenes are instanced (cloned), never assembled node-by-node in code:
 
 ```
-├── project.godot        # Godot 4 project config (480x720, GL Compatibility)
 ├── scenes/
-│   ├── main.tscn        # game root: player + HUD instances, spawn path, timers
-│   ├── player.tscn      # Area2D + animated sprite + capsule collision
-│   ├── mob.tscn         # RigidBody2D creep, cloned by main.gd each spawn tick
-│   └── hud.tscn         # CanvasLayer: score, messages, start button
+│   ├── main.tscn        # map: ground, sky, scenery, camera rig, HUD
+│   ├── unit.tscn        # base unit: body, collision, selection ring, health bar
+│   ├── unit_blue.tscn   # inherits unit.tscn + player character model
+│   ├── unit_red.tscn    # inherits unit.tscn + enemy character model
+│   └── hud.tscn         # selection rectangle, status line, end screen
 ├── scripts/
-│   ├── main.gd          # game loop: spawning (mob_scene.instantiate()), scoring
-│   ├── player.gd        # movement, screen clamping, hit signal
-│   ├── mob.gd           # random animation, self-free off screen
-│   └── hud.gd           # UI updates, start_game signal
-└── art/                 # CC0 sprites (see credits)
+│   ├── main.gd          # spawning (scene cloning), selection, order routing, win/lose
+│   ├── unit.gd          # movement, auto-aggro, melee combat, health
+│   ├── camera_rig.gd    # RTS camera pan/zoom
+│   ├── hud.gd           # UI updates
+│   └── selection_rect.gd
+├── tools/
+│   ├── combat_smoke_test.gd   # headless: 2v1 fight must resolve (CI-able)
+│   └── inspect_assets.gd      # prints model sizes + animation lists
+└── assets/              # CC0 models (see credits)
 ```
 
-Mobs spawn on a `Path2D` ring around the screen edge: a `PathFollow2D` jumps to a random `progress_ratio`, and the mob launches inward with randomized speed and spread. Nodes communicate with signals (`Player.hit → Main.game_over`, `HUD.start_game → Main.new_game`) rather than hard references.
+Key mechanics:
+
+- **Selection** — click raycasts against the unit collision layer; drag-box projects unit positions to screen space and tests them against the rectangle.
+- **Orders** — right-click raycasts ground + units in one pass: enemies become attack targets, ground points become move targets with a grid formation spread.
+- **Combat** — units chase into melee range, attack on a cooldown, and play the matching character animations (walk, attack, idle). Idle units scan for nearby enemies twice a second.
+
+## Headless tests
+
+```bash
+godot --headless -s tools/combat_smoke_test.gd
+```
+
+## Roadmap
+
+- [x] Camera rig, map, scenery
+- [x] Unit selection (click + drag box) and move orders
+- [x] Melee combat, auto-aggro, win/lose
+- [ ] Pathfinding around obstacles (NavigationRegion3D)
+- [ ] Buildings and base construction
+- [ ] Resource gathering (jewel pickups)
+- [ ] Unit training / production
+- [ ] Enemy wave AI
+- [ ] Minimap
 
 ## Credits
 
-- **Sprites:** ["Abstract Platformer"](https://kenney.nl/assets/abstract-platformer) art pack by [Kenney](https://kenney.nl) — public domain (CC0).
-- Game design based on the classic "Dodge the Creeps" Godot tutorial concept.
+All models are **CC0 (public domain)** by [Kenney](https://kenney.nl):
+
+- [Mini Characters](https://kenney.nl/assets/mini-characters-1) — unit models (rigged + animated)
+- [Platformer Kit](https://kenney.nl/assets/platformer-kit) — trees, rocks, flags, flowers
 
 ## License
 
-Code is MIT (see [LICENSE](LICENSE)). Art is CC0 by Kenney.
+Code is MIT (see [LICENSE](LICENSE)). Models are CC0 by Kenney.

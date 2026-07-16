@@ -1,43 +1,149 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/mob.tscn" id="2"]
-[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/unit_blue.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/unit_red.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="4"]
+[ext_resource type="Script" path="res://scripts/camera_rig.gd" id="5"]
+[ext_resource type="PackedScene" path="res://assets/scenery/tree.glb" id="6"]
+[ext_resource type="PackedScene" path="res://assets/scenery/tree-pine.glb" id="7"]
+[ext_resource type="PackedScene" path="res://assets/scenery/rocks.glb" id="8"]
+[ext_resource type="PackedScene" path="res://assets/scenery/stones.glb" id="9"]
+[ext_resource type="PackedScene" path="res://assets/scenery/flag.glb" id="10"]
+[ext_resource type="PackedScene" path="res://assets/scenery/flowers.glb" id="11"]
 
-[sub_resource type="Curve2D" id="Curve2D_1"]
-_data = {
-"points": PackedVector2Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 480, 0, 0, 0, 0, 0, 480, 720, 0, 0, 0, 0, 0, 720, 0, 0, 0, 0, 0, 0)
-}
-point_count = 5
+[sub_resource type="ProceduralSkyMaterial" id="SkyMat_1"]
+sky_top_color = Color(0.35, 0.55, 0.8, 1)
+sky_horizon_color = Color(0.64, 0.72, 0.78, 1)
+ground_bottom_color = Color(0.2, 0.24, 0.28, 1)
+ground_horizon_color = Color(0.64, 0.72, 0.78, 1)
 
-[node name="Main" type="Node"]
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("SkyMat_1")
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+tonemap_mode = 2
+
+[sub_resource type="BoxMesh" id="BoxMesh_ground"]
+size = Vector3(44, 0.5, 44)
+
+[sub_resource type="StandardMaterial3D" id="Mat_ground"]
+albedo_color = Color(0.42, 0.62, 0.35, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
+size = Vector3(44, 0.5, 44)
+
+[node name="Main" type="Node3D"]
 script = ExtResource("1")
-mob_scene = ExtResource("2")
+blue_unit_scene = ExtResource("2")
+red_unit_scene = ExtResource("3")
 
-[node name="Player" parent="." instance=ExtResource("3")]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
 
-[node name="StartPosition" type="Marker2D" parent="."]
-position = Vector2(240, 450)
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-55, -35, 0)
+shadow_enabled = true
 
-[node name="MobPath" type="Path2D" parent="."]
-curve = SubResource("Curve2D_1")
+[node name="Ground" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
 
-[node name="MobSpawnLocation" type="PathFollow2D" parent="MobPath"]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground"]
+position = Vector3(0, -0.25, 0)
+mesh = SubResource("BoxMesh_ground")
+surface_material_override/0 = SubResource("Mat_ground")
 
-[node name="MobTimer" type="Timer" parent="."]
-wait_time = 0.5
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground"]
+position = Vector3(0, -0.25, 0)
+shape = SubResource("BoxShape3D_ground")
 
-[node name="ScoreTimer" type="Timer" parent="."]
+[node name="CameraRig" type="Node3D" parent="."]
+position = Vector3(0, 0, 8)
+script = ExtResource("5")
 
-[node name="StartTimer" type="Timer" parent="."]
-wait_time = 2.0
-one_shot = true
+[node name="Camera3D" type="Camera3D" parent="CameraRig"]
+position = Vector3(0, 15, 9.5)
+rotation_degrees = Vector3(-57, 0, 0)
+
+[node name="Units" type="Node3D" parent="."]
+
+[node name="Scenery" type="Node3D" parent="."]
+
+[node name="Tree1" parent="Scenery" instance=ExtResource("6")]
+position = Vector3(-17, 0, -17)
+scale = Vector3(2.5, 2.5, 2.5)
+
+[node name="Tree2" parent="Scenery" instance=ExtResource("6")]
+position = Vector3(16, 0, -18)
+rotation_degrees = Vector3(0, 70, 0)
+scale = Vector3(2.5, 2.5, 2.5)
+
+[node name="Tree3" parent="Scenery" instance=ExtResource("6")]
+position = Vector3(18, 0, 15)
+rotation_degrees = Vector3(0, 140, 0)
+scale = Vector3(2.5, 2.5, 2.5)
+
+[node name="Tree4" parent="Scenery" instance=ExtResource("6")]
+position = Vector3(-18, 0, 14)
+rotation_degrees = Vector3(0, 205, 0)
+scale = Vector3(2.5, 2.5, 2.5)
+
+[node name="Pine1" parent="Scenery" instance=ExtResource("7")]
+position = Vector3(-16, 0, -3)
+scale = Vector3(2.5, 2.5, 2.5)
+
+[node name="Pine2" parent="Scenery" instance=ExtResource("7")]
+position = Vector3(17, 0, -6)
+rotation_degrees = Vector3(0, 100, 0)
+scale = Vector3(2.5, 2.5, 2.5)
+
+[node name="Pine3" parent="Scenery" instance=ExtResource("7")]
+position = Vector3(3, 0, -18)
+rotation_degrees = Vector3(0, 40, 0)
+scale = Vector3(2.5, 2.5, 2.5)
+
+[node name="Pine4" parent="Scenery" instance=ExtResource("7")]
+position = Vector3(-5, 0, 18)
+rotation_degrees = Vector3(0, 240, 0)
+scale = Vector3(2.5, 2.5, 2.5)
+
+[node name="Rocks1" parent="Scenery" instance=ExtResource("8")]
+position = Vector3(9, 0, 5)
+scale = Vector3(2, 2, 2)
+
+[node name="Rocks2" parent="Scenery" instance=ExtResource("8")]
+position = Vector3(-8, 0, -6)
+rotation_degrees = Vector3(0, 160, 0)
+scale = Vector3(2, 2, 2)
+
+[node name="Stones1" parent="Scenery" instance=ExtResource("9")]
+position = Vector3(-11, 0, 4)
+scale = Vector3(2, 2, 2)
+
+[node name="Stones2" parent="Scenery" instance=ExtResource("9")]
+position = Vector3(12, 0, -9)
+rotation_degrees = Vector3(0, 80, 0)
+scale = Vector3(2, 2, 2)
+
+[node name="FlagBlue" parent="Scenery" instance=ExtResource("10")]
+position = Vector3(3, 0, 16)
+scale = Vector3(2, 2, 2)
+
+[node name="FlagRed" parent="Scenery" instance=ExtResource("10")]
+position = Vector3(-3, 0, -16)
+rotation_degrees = Vector3(0, 180, 0)
+scale = Vector3(2, 2, 2)
+
+[node name="Flowers1" parent="Scenery" instance=ExtResource("11")]
+position = Vector3(5, 0, 7)
+scale = Vector3(2, 2, 2)
+
+[node name="Flowers2" parent="Scenery" instance=ExtResource("11")]
+position = Vector3(-6, 0, 9)
+rotation_degrees = Vector3(0, 120, 0)
+scale = Vector3(2, 2, 2)
 
 [node name="HUD" parent="." instance=ExtResource("4")]
-
-[connection signal="hit" from="Player" to="." method="game_over"]
-[connection signal="timeout" from="MobTimer" to="." method="_on_mob_timer_timeout"]
-[connection signal="timeout" from="ScoreTimer" to="." method="_on_score_timer_timeout"]
-[connection signal="timeout" from="StartTimer" to="." method="_on_start_timer_timeout"]
-[connection signal="start_game" from="HUD" to="." method="new_game"]
