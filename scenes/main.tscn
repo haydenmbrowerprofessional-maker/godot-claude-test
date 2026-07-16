@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/unit_blue.tscn" id="2"]
@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" path="res://assets/scenery/stones.glb" id="9"]
 [ext_resource type="PackedScene" path="res://assets/scenery/flag.glb" id="10"]
 [ext_resource type="PackedScene" path="res://assets/scenery/flowers.glb" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/building_blue.tscn" id="12"]
+[ext_resource type="PackedScene" path="res://scenes/building_red.tscn" id="13"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat_1"]
 sky_top_color = Color(0.35, 0.55, 0.8, 1)
@@ -69,6 +71,18 @@ position = Vector3(0, 15, 9.5)
 rotation_degrees = Vector3(-57, 0, 0)
 
 [node name="Units" type="Node3D" parent="."]
+
+[node name="Buildings" type="Node3D" parent="."]
+
+[node name="BuildingBlue" parent="Buildings" instance=ExtResource("12")]
+position = Vector3(-4, 0, 14)
+rotation_degrees = Vector3(0, 90, 0)
+rally_offset = Vector3(0, 0, -3)
+
+[node name="BuildingRed" parent="Buildings" instance=ExtResource("13")]
+position = Vector3(4, 0, -14)
+rotation_degrees = Vector3(0, -90, 0)
+rally_offset = Vector3(0, 0, 3)
 
 [node name="Scenery" type="Node3D" parent="."]
 

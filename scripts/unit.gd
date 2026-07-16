@@ -17,7 +17,7 @@ var health: float
 var selected := false
 var move_target := Vector3.ZERO
 var has_move_target := false
-var attack_target: Unit = null
+var attack_target = null  # Unit or Building (both expose team/health/take_damage)
 
 var _cooldown := 0.0
 var _anim: AnimationPlayer = null
@@ -43,9 +43,11 @@ func _physics_process(delta: float) -> void:
 		attack_target = null
 
 	if attack_target:
-		var offset := attack_target.global_position - global_position
+		var offset: Vector3 = attack_target.global_position - global_position
 		offset.y = 0.0
-		if offset.length() > attack_range:
+		# Wide targets (buildings) count their footprint toward reach.
+		var target_radius: float = attack_target.get("radius") if attack_target.get("radius") != null else 0.0
+		if offset.length() > attack_range + target_radius:
 			_step_toward(attack_target.global_position)
 		else:
 			velocity.x = 0.0
@@ -82,7 +84,7 @@ func command_move(pos: Vector3) -> void:
 	has_move_target = true
 
 
-func command_attack(target: Unit) -> void:
+func command_attack(target) -> void:
 	has_move_target = false
 	attack_target = target
 

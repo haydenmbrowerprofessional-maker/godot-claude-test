@@ -14,30 +14,43 @@ const CLICK_DRAG_THRESHOLD := 8.0
 var selected: Array[Unit] = []
 var _blue_alive := 0
 var _red_alive := 0
+var _blue_buildings := 0
+var _red_buildings := 0
 var _drag_start := Vector2.ZERO
 var _dragging := false
 var _game_over := false
 
 
 func _ready() -> void:
-	_spawn_army(blue_unit_scene, 0, Vector3(0, 0.1, 12))
-	_spawn_army(red_unit_scene, 1, Vector3(0, 0.1, -12))
+	for building: Building in $Buildings.get_children():
+		building.unit_spawned.connect(_register_unit)
+		building.died.connect(_on_building_died)
+		if building.team == 0:
+			_blue_buildings += 1
+		else:
+			_red_buildings += 1
+	_spawn_army(blue_unit_scene, Vector3(0, 0.1, 12))
+	_spawn_army(red_unit_scene, Vector3(0, 0.1, -12))
 	_update_hud()
 
 
-func _spawn_army(scene: PackedScene, team: int, center: Vector3) -> void:
+func _spawn_army(scene: PackedScene, center: Vector3) -> void:
 	for i in units_per_team:
 		# Clone the team's unit scene rather than building nodes in code.
 		var unit: Unit = scene.instantiate()
 		var column := i % 3 - 1
 		var row := floori(i / 3.0)
 		unit.position = center + Vector3(column * 1.6, 0.0, row * 1.6 * signf(center.z))
-		unit.died.connect(_on_unit_died)
-		$Units.add_child(unit)
-		if team == 0:
-			_blue_alive += 1
-		else:
-			_red_alive += 1
+		_register_unit(unit)
+
+
+func _register_unit(unit: Unit) -> void:
+	unit.died.connect(_on_unit_died)
+	$Units.add_child(unit)
+	if unit.team == 0:
+		_blue_alive += 1
+	else:
+		_red_alive += 1
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -97,12 +110,13 @@ func _issue_order(screen_pos: Vector2) -> void:
 	var hit := _raycast(screen_pos, LAYER_GROUND | LAYER_UNITS)
 	if hit.is_empty():
 		return
-	var target := hit.get("collider") as Unit
-	if target and target.team != 0:
+	var collider: Object = hit.get("collider")
+	var is_target := collider is Unit or collider is Building
+	if is_target and collider.team != 0:
 		for unit in selected:
-			unit.command_attack(target)
+			unit.command_attack(collider)
 	else:
-		var point: Vector3 = hit["position"] if target == null else target.global_position
+		var point: Vector3 = hit["position"]
 		# Spread destinations into a small grid so units don't stack.
 		for i in selected.size():
 			var offset := Vector3((i % 3 - 1) * 1.1, 0.0, floori(i / 3.0) * 1.1)
@@ -139,9 +153,23 @@ func _on_unit_died(unit: Unit) -> void:
 		_red_alive -= 1
 	selected.erase(unit)
 	_update_hud()
-	if _red_alive == 0:
+	_check_end()
+
+
+func _on_building_died(building: Building) -> void:
+	if building.team == 0:
+		_blue_buildings -= 1
+	else:
+		_red_buildings -= 1
+	_check_end()
+
+
+func _check_end() -> void:
+	if _game_over:
+		return
+	if _red_alive == 0 and _red_buildings == 0:
 		_end_game("Victory!")
-	elif _blue_alive == 0:
+	elif _blue_alive == 0 and _blue_buildings == 0:
 		_end_game("Defeat")
 
 
