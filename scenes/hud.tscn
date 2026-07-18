@@ -18,10 +18,52 @@ script = ExtResource("2")
 [node name="InfoLabel" type="Label" parent="."]
 offset_left = 14.0
 offset_top = 10.0
-offset_right = 900.0
+offset_right = 980.0
 offset_bottom = 36.0
 theme_override_font_sizes/font_size = 16
-text = "Selected: 0    |    LMB drag: select   RMB: move / attack   WASD: pan   Wheel: zoom"
+text = "Selected: 0"
+
+[node name="ObjectiveLabel" type="Label" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -420.0
+offset_top = 10.0
+offset_right = -14.0
+offset_bottom = 36.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 16
+text = "Gems: 0/3    Camps left: 4"
+horizontal_alignment = 2
+
+[node name="BuildBar" type="HBoxContainer" parent="."]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -66.0
+offset_bottom = -14.0
+grow_vertical = 0
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="HutButton" type="Button" parent="BuildBar"]
+custom_minimum_size = Vector2(150, 48)
+theme_override_font_sizes/font_size = 18
+text = "Hut"
+
+[node name="WatchtowerButton" type="Button" parent="BuildBar"]
+custom_minimum_size = Vector2(150, 48)
+theme_override_font_sizes/font_size = 18
+text = "Watchtower"
+
+[node name="WorkshopButton" type="Button" parent="BuildBar"]
+custom_minimum_size = Vector2(150, 48)
+theme_override_font_sizes/font_size = 18
+text = "Workshop"
+
+[node name="TotemButton" type="Button" parent="BuildBar"]
+custom_minimum_size = Vector2(170, 48)
+theme_override_font_sizes/font_size = 18
+text = "Grand Totem"
 
 [node name="CenterMessage" type="Label" parent="."]
 visible = false

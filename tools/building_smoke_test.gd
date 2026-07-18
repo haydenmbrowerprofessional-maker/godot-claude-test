@@ -8,7 +8,7 @@ extends SceneTree
 
 var frames := 0
 var spawned: Array = []
-var building: Building
+var building: Spawner
 var building_died := false
 var killed_one := false
 
@@ -24,7 +24,7 @@ func _init() -> void:
 	ground.add_child(shape)
 	root.add_child(ground)
 
-	building = (load("res://scenes/building_blue.tscn") as PackedScene).instantiate()
+	building = (load("res://scenes/buildings/hut.tscn") as PackedScene).instantiate()
 	building.spawn_interval = 0.5
 	building.rally_offset = Vector3(3, 0, 0)
 	building.unit_spawned.connect(_on_unit_spawned)

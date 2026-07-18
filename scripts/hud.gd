@@ -1,5 +1,30 @@
 extends CanvasLayer
-## In-game UI: selection drag rectangle, status line, end-of-game message.
+## In-game UI: build bar with tech gating, objectives, selection rectangle,
+## status line, and the end-of-game message.
+
+signal build_requested(building_id: String)
+
+@onready var _buttons := {
+	"hut": $BuildBar/HutButton,
+	"watchtower": $BuildBar/WatchtowerButton,
+	"workshop": $BuildBar/WorkshopButton,
+	"grand_totem": $BuildBar/TotemButton,
+}
+
+
+func _ready() -> void:
+	for id in _buttons:
+		_buttons[id].pressed.connect(func(): build_requested.emit(id))
+
+
+func set_build_state(id: String, enabled: bool, tooltip: String) -> void:
+	var button: Button = _buttons[id]
+	button.disabled = not enabled
+	button.tooltip_text = tooltip
+
+
+func set_objectives(text: String) -> void:
+	$ObjectiveLabel.text = text
 
 
 func set_drag_rect(rect: Rect2) -> void:

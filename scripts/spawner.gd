@@ -1,42 +1,23 @@
-class_name Building
-extends StaticBody3D
-## A production building: spawns units on a timer, capped at
-## [member max_units] living units per building. A slot frees up when
-## one of this building's units dies. Destructible.
+class_name Spawner
+extends Destructible
+## A building that produces units on a timer, capped at [member max_units]
+## living units. A slot frees when one of this building's units dies.
+## Used by the player's Hut and by enemy camps.
 
-signal died(building: Building)
 signal unit_spawned(unit: Unit)
 
-@export var team := 0
 @export var unit_scene: PackedScene
 @export var max_units := 3
 @export var spawn_interval := 6.0
-@export var max_health := 300.0
 ## Where spawned units appear, relative to the building (global axes).
 @export var rally_offset := Vector3(3, 0, 0)
-## Footprint radius; attackers add this to their melee reach.
-@export var radius := 1.0
 
-var health: float
 var _alive_units: Array[Unit] = []
 
 
-func _ready() -> void:
-	health = max_health
-	add_to_group("buildings")
+func _setup() -> void:
 	$SpawnTimer.wait_time = spawn_interval
 	$SpawnTimer.start()
-
-
-func take_damage(amount: float) -> void:
-	if health <= 0.0:
-		return
-	health -= amount
-	$HealthBar/FillPivot.scale.x = clampf(health / max_health, 0.0, 1.0)
-	if health <= 0.0:
-		remove_from_group("buildings")
-		died.emit(self)
-		queue_free()
 
 
 func _on_spawn_timer_timeout() -> void:

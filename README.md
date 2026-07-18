@@ -1,6 +1,6 @@
 # Mini Command
 
-A small real-time strategy game built in **Godot 4**. Select your squad, issue orders, and wipe out the red team. Early days — see the roadmap below.
+A small real-time strategy game built in **Godot 4**, inspired by *Totem Tribe*: explore a fog-covered fantasy map, expand your village through a building tech tree, clear enemy camps, hunt hidden gems, and raise the Grand Totem to win.
 
 ## How to run
 
@@ -8,17 +8,34 @@ A small real-time strategy game built in **Godot 4**. Select your squad, issue o
 2. Open Godot → **Import** → select this folder's `project.godot`.
 3. Press **F5** (Run Project).
 
-## Controls
+## How to play
+
+You start with a Hut, three fighters, and a dark map.
+
+- **Explore** — the fog lifts permanently around your units and buildings. Enemy camps and gems stay hidden until you scout them.
+- **Build** — the build bar (bottom) places buildings on revealed ground. The tech tree gates each tier:
+
+  | Building | Requires | Effect |
+  |---|---|---|
+  | Hut | — | Trains fighters (max 3 alive per hut; a slot frees when one dies) |
+  | Watchtower | Hut | Shoots nearby enemies, wide vision |
+  | Workshop | Watchtower | +30% unit damage while standing |
+  | Grand Totem | Workshop + 3 gems | **Build it to win** |
+
+- **Fight** — camps respawn creeps (same 3-cap spawner as your huts) until destroyed. Creeps aggro your units and buildings.
+- **Collect** — 4 gems are hidden in the map's corners; walk a unit over one to take it. You need 3 for the totem.
+
+Defeat comes only when every unit *and* building you own is gone.
+
+### Controls
 
 | Input | Action |
 |---|---|
 | Left-click / drag | Select unit / box-select squad (Shift adds) |
-| Right-click ground | Move selected units (formation spread) |
-| Right-click enemy unit or building | Attack target |
+| Right-click | Move (formation spread) / attack target |
+| Build bar button | Enter placement (LMB place, RMB/Esc cancel) |
 | WASD / arrows | Pan camera |
 | Mouse wheel | Zoom |
-
-Units also auto-attack enemies that wander into aggro range. Each team's barracks trains a new unit every few seconds, but supports **at most 3 living units at a time** — a slot frees up when one of its units dies. Destroy all red units *and* the red barracks to win.
 
 ## Architecture
 
@@ -26,39 +43,39 @@ Reusable scenes are instanced (cloned), never assembled node-by-node in code:
 
 ```
 ├── scenes/
-│   ├── main.tscn        # map: ground, sky, scenery, camera rig, HUD
-│   ├── unit.tscn        # base unit: body, collision, selection ring, health bar
-│   ├── unit_blue.tscn   # inherits unit.tscn + player character model
-│   ├── unit_red.tscn    # inherits unit.tscn + enemy character model
-│   ├── building.tscn    # base barracks: collision, health bar, spawn timer
-│   ├── building_blue/red.tscn  # watchtower composed from town-kit pieces
-│   └── hud.tscn         # selection rectangle, status line, end screen
+│   ├── main.tscn            # the map: fog, camps, gems, scenery, camera
+│   ├── unit.tscn            # base unit; unit_blue/red.tscn add team models
+│   ├── buildings/           # hut, watchtower, workshop, grand_totem, camp
+│   ├── gem.tscn             # collectible (Area3D + spinning jewel)
+│   ├── ghost.tscn           # placement preview disc
+│   └── hud.tscn             # build bar, objectives, selection, end screen
 ├── scripts/
-│   ├── main.gd          # spawning (scene cloning), selection, order routing, win/lose
-│   ├── unit.gd          # movement, auto-aggro, melee combat, health
-│   ├── building.gd      # timed unit production with living-unit cap
-│   ├── camera_rig.gd    # RTS camera pan/zoom
-│   ├── hud.gd           # UI updates
-│   └── selection_rect.gd
-├── tools/
-│   ├── combat_smoke_test.gd     # headless: 2v1 fight must resolve (CI-able)
-│   ├── building_smoke_test.gd   # headless: spawn cap, respawn-on-death, destructibility
-│   └── inspect_assets.gd        # prints model sizes + animation lists
-└── assets/              # CC0 models (see credits)
+│   ├── main.gd              # placement mode, tech gating, orders, win/lose
+│   ├── destructible.gd      # building base: team, health, footprint
+│   ├── spawner.gd           # timed unit production with living-unit cap
+│   ├── tower.gd             # auto-attack defense
+│   ├── workshop.gd          # damage buff while standing
+│   ├── grand_totem.gd       # victory trigger
+│   ├── fog_of_war.gd        # reveal mask painting + enemy visibility
+│   ├── unit.gd              # movement, auto-aggro, melee combat
+│   ├── game_state.gd        # autoload: gems, tech buffs
+│   └── camera_rig.gd, hud.gd, gem.gd, ghost.gd, selection_rect.gd
+└── tools/                   # headless smoke tests (see below)
 ```
 
-Key mechanics:
+Notable mechanics:
 
-- **Selection** — click raycasts against the unit collision layer; drag-box projects unit positions to screen space and tests them against the rectangle.
-- **Orders** — right-click raycasts ground + units in one pass: enemies become attack targets, ground points become move targets with a grid formation spread.
-- **Combat** — units chase into melee range, attack on a cooldown, and play the matching character animations (walk, attack, idle). Idle units scan for nearby enemies twice a second. Wide targets (buildings) add their footprint radius to melee reach so corners are attackable.
-- **Production** — each barracks clones its team's unit scene on a timer, tracks its living units, and refuses to spawn past the cap until one dies.
+- **Fog of war** — a dark plane hangs above the map; its shader samples a 160x160 reveal mask that `fog_of_war.gd` paints white circles into around friendly vision sources, four times a second. Revealed stays revealed (Totem Tribe style), and enemies toggle visibility based on the mask.
+- **Placement** — build buttons spawn a ghost disc that follows the mouse, green/red for validity (revealed ground, in bounds, clear of other buildings). Valid click clones the building's scene into the world.
+- **Tech gating** — buildings register by scene path; the build bar enables tiers from live counts, so losing your last Watchtower re-locks the Workshop tier.
 
 ## Headless tests
 
 ```bash
-godot --headless -s tools/combat_smoke_test.gd
-godot --headless -s tools/building_smoke_test.gd
+godot --headless -s tools/combat_smoke_test.gd     # 2v1 fight resolves
+godot --headless -s tools/building_smoke_test.gd   # spawn cap, respawn, destructibility
+godot --headless -s tools/gem_smoke_test.gd        # walking over a gem collects it
+godot --headless -s tools/fog_smoke_test.gd        # reveal persists, gates enemy visibility
 ```
 
 ## Roadmap
@@ -67,9 +84,11 @@ godot --headless -s tools/building_smoke_test.gd
 - [x] Unit selection (click + drag box) and move orders
 - [x] Melee combat, auto-aggro, win/lose
 - [x] Production buildings (timed spawns, 3-unit cap, destructible)
+- [x] Fog-of-war exploration, hidden gems
+- [x] Building placement + tech tree (Hut → Watchtower → Workshop → Grand Totem)
 - [ ] Pathfinding around obstacles (NavigationRegion3D)
-- [ ] Resource gathering (jewel pickups)
-- [ ] Base construction (place new buildings)
+- [ ] More maps / level progression
+- [ ] More unit types and tech branches
 - [ ] Enemy wave AI
 - [ ] Minimap
 
@@ -78,8 +97,8 @@ godot --headless -s tools/building_smoke_test.gd
 All models are **CC0 (public domain)** by [Kenney](https://kenney.nl):
 
 - [Mini Characters](https://kenney.nl/assets/mini-characters-1) — unit models (rigged + animated)
-- [Platformer Kit](https://kenney.nl/assets/platformer-kit) — trees, rocks, flags, flowers
-- [Fantasy Town Kit](https://kenney.nl/assets/fantasy-town-kit) — barracks walls, roofs, banners
+- [Platformer Kit](https://kenney.nl/assets/platformer-kit) — trees, rocks, flags, gems
+- [Fantasy Town Kit](https://kenney.nl/assets/fantasy-town-kit) — building pieces, banners, scenery
 
 ## License
 

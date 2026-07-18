@@ -1,24 +1,32 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=30 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/unit_blue.tscn" id="2"]
-[ext_resource type="PackedScene" path="res://scenes/unit_red.tscn" id="3"]
-[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="4"]
-[ext_resource type="Script" path="res://scripts/camera_rig.gd" id="5"]
-[ext_resource type="PackedScene" path="res://assets/scenery/tree.glb" id="6"]
-[ext_resource type="PackedScene" path="res://assets/scenery/tree-pine.glb" id="7"]
-[ext_resource type="PackedScene" path="res://assets/scenery/rocks.glb" id="8"]
-[ext_resource type="PackedScene" path="res://assets/scenery/stones.glb" id="9"]
-[ext_resource type="PackedScene" path="res://assets/scenery/flag.glb" id="10"]
-[ext_resource type="PackedScene" path="res://assets/scenery/flowers.glb" id="11"]
-[ext_resource type="PackedScene" path="res://scenes/building_blue.tscn" id="12"]
-[ext_resource type="PackedScene" path="res://scenes/building_red.tscn" id="13"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="3"]
+[ext_resource type="Script" path="res://scripts/camera_rig.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/fog_of_war.gd" id="5"]
+[ext_resource type="Shader" path="res://assets/fog.gdshader" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/hut.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/camp.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/gem.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://assets/scenery/tree.glb" id="10"]
+[ext_resource type="PackedScene" path="res://assets/scenery/tree-pine.glb" id="11"]
+[ext_resource type="PackedScene" path="res://assets/buildings/tree-high-round.glb" id="12"]
+[ext_resource type="PackedScene" path="res://assets/buildings/tree-crooked.glb" id="13"]
+[ext_resource type="PackedScene" path="res://assets/buildings/hedge.glb" id="14"]
+[ext_resource type="PackedScene" path="res://assets/buildings/lantern.glb" id="15"]
+[ext_resource type="PackedScene" path="res://assets/buildings/cart.glb" id="16"]
+[ext_resource type="PackedScene" path="res://assets/buildings/fountain-round-detail.glb" id="17"]
+[ext_resource type="PackedScene" path="res://assets/buildings/rock-wide.glb" id="18"]
+[ext_resource type="PackedScene" path="res://assets/scenery/stones.glb" id="19"]
+[ext_resource type="PackedScene" path="res://assets/scenery/flowers.glb" id="20"]
+[ext_resource type="PackedScene" path="res://assets/scenery/grass.glb" id="21"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat_1"]
-sky_top_color = Color(0.35, 0.55, 0.8, 1)
-sky_horizon_color = Color(0.64, 0.72, 0.78, 1)
-ground_bottom_color = Color(0.2, 0.24, 0.28, 1)
-ground_horizon_color = Color(0.64, 0.72, 0.78, 1)
+sky_top_color = Color(0.3, 0.45, 0.7, 1)
+sky_horizon_color = Color(0.6, 0.66, 0.72, 1)
+ground_bottom_color = Color(0.16, 0.2, 0.24, 1)
+ground_horizon_color = Color(0.6, 0.66, 0.72, 1)
 
 [sub_resource type="Sky" id="Sky_1"]
 sky_material = SubResource("SkyMat_1")
@@ -29,18 +37,25 @@ sky = SubResource("Sky_1")
 tonemap_mode = 2
 
 [sub_resource type="BoxMesh" id="BoxMesh_ground"]
-size = Vector3(44, 0.5, 44)
+size = Vector3(60, 0.5, 60)
 
 [sub_resource type="StandardMaterial3D" id="Mat_ground"]
-albedo_color = Color(0.42, 0.62, 0.35, 1)
+albedo_color = Color(0.38, 0.56, 0.32, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
-size = Vector3(44, 0.5, 44)
+size = Vector3(60, 0.5, 60)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_fog"]
+size = Vector2(90, 90)
+
+[sub_resource type="ShaderMaterial" id="FogMat_1"]
+render_priority = 10
+shader = ExtResource("6")
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1")
-blue_unit_scene = ExtResource("2")
-red_unit_scene = ExtResource("3")
+starter_unit_scene = ExtResource("2")
+base_center = Vector3(20, 0.1, 19)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_1")
@@ -63,101 +78,176 @@ position = Vector3(0, -0.25, 0)
 shape = SubResource("BoxShape3D_ground")
 
 [node name="CameraRig" type="Node3D" parent="."]
-position = Vector3(0, 0, 8)
-script = ExtResource("5")
+position = Vector3(20, 0, 17)
+script = ExtResource("4")
+map_limit = 26.0
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig"]
 position = Vector3(0, 15, 9.5)
 rotation_degrees = Vector3(-57, 0, 0)
 
+[node name="FogOfWar" type="MeshInstance3D" parent="."]
+position = Vector3(0, 8, 0)
+mesh = SubResource("PlaneMesh_fog")
+material_override = SubResource("FogMat_1")
+script = ExtResource("5")
+
+[node name="Tick" type="Timer" parent="FogOfWar"]
+wait_time = 0.25
+autostart = true
+
 [node name="Units" type="Node3D" parent="."]
 
 [node name="Buildings" type="Node3D" parent="."]
 
-[node name="BuildingBlue" parent="Buildings" instance=ExtResource("12")]
-position = Vector3(-4, 0, 14)
+[node name="StartHut" parent="Buildings" instance=ExtResource("7")]
+position = Vector3(20, 0, 23)
 rotation_degrees = Vector3(0, 90, 0)
-rally_offset = Vector3(0, 0, -3)
+rally_offset = Vector3(0, 0, -2.4)
 
-[node name="BuildingRed" parent="Buildings" instance=ExtResource("13")]
-position = Vector3(4, 0, -14)
-rotation_degrees = Vector3(0, -90, 0)
-rally_offset = Vector3(0, 0, 3)
+[node name="CampCenter" parent="Buildings" instance=ExtResource("8")]
+position = Vector3(0, 0, 6)
+rally_offset = Vector3(2.5, 0, 2)
+
+[node name="CampWest" parent="Buildings" instance=ExtResource("8")]
+position = Vector3(-18, 0, 16)
+rotation_degrees = Vector3(0, 120, 0)
+rally_offset = Vector3(2.5, 0, 0)
+
+[node name="CampNorth" parent="Buildings" instance=ExtResource("8")]
+position = Vector3(-6, 0, -14)
+rotation_degrees = Vector3(0, -70, 0)
+rally_offset = Vector3(0, 0, 2.5)
+
+[node name="CampFar" parent="Buildings" instance=ExtResource("8")]
+position = Vector3(-21, 0, -19)
+rotation_degrees = Vector3(0, 200, 0)
+rally_offset = Vector3(2.5, 0, 2)
+
+[node name="Gems" type="Node3D" parent="."]
+
+[node name="Gem1" parent="Gems" instance=ExtResource("9")]
+position = Vector3(2, 0, 2)
+
+[node name="Gem2" parent="Gems" instance=ExtResource("9")]
+position = Vector3(-25, 0, 21)
+
+[node name="Gem3" parent="Gems" instance=ExtResource("9")]
+position = Vector3(12, 0, -25)
+
+[node name="Gem4" parent="Gems" instance=ExtResource("9")]
+position = Vector3(-26, 0, -25)
 
 [node name="Scenery" type="Node3D" parent="."]
 
-[node name="Tree1" parent="Scenery" instance=ExtResource("6")]
-position = Vector3(-17, 0, -17)
+[node name="Tree1" parent="Scenery" instance=ExtResource("10")]
+position = Vector3(-27, 0, -27)
 scale = Vector3(2.5, 2.5, 2.5)
 
-[node name="Tree2" parent="Scenery" instance=ExtResource("6")]
-position = Vector3(16, 0, -18)
+[node name="Tree2" parent="Scenery" instance=ExtResource("10")]
+position = Vector3(26, 0, -26)
 rotation_degrees = Vector3(0, 70, 0)
 scale = Vector3(2.5, 2.5, 2.5)
 
-[node name="Tree3" parent="Scenery" instance=ExtResource("6")]
-position = Vector3(18, 0, 15)
+[node name="Tree3" parent="Scenery" instance=ExtResource("10")]
+position = Vector3(27, 0, 5)
 rotation_degrees = Vector3(0, 140, 0)
 scale = Vector3(2.5, 2.5, 2.5)
 
-[node name="Tree4" parent="Scenery" instance=ExtResource("6")]
-position = Vector3(-18, 0, 14)
+[node name="Tree4" parent="Scenery" instance=ExtResource("10")]
+position = Vector3(-27, 0, 4)
 rotation_degrees = Vector3(0, 205, 0)
 scale = Vector3(2.5, 2.5, 2.5)
 
-[node name="Pine1" parent="Scenery" instance=ExtResource("7")]
-position = Vector3(-16, 0, -3)
-scale = Vector3(2.5, 2.5, 2.5)
-
-[node name="Pine2" parent="Scenery" instance=ExtResource("7")]
-position = Vector3(17, 0, -6)
-rotation_degrees = Vector3(0, 100, 0)
-scale = Vector3(2.5, 2.5, 2.5)
-
-[node name="Pine3" parent="Scenery" instance=ExtResource("7")]
-position = Vector3(3, 0, -18)
-rotation_degrees = Vector3(0, 40, 0)
-scale = Vector3(2.5, 2.5, 2.5)
-
-[node name="Pine4" parent="Scenery" instance=ExtResource("7")]
-position = Vector3(-5, 0, 18)
-rotation_degrees = Vector3(0, 240, 0)
-scale = Vector3(2.5, 2.5, 2.5)
-
-[node name="Rocks1" parent="Scenery" instance=ExtResource("8")]
-position = Vector3(9, 0, 5)
+[node name="TreeHigh1" parent="Scenery" instance=ExtResource("12")]
+position = Vector3(-10, 0, 22)
 scale = Vector3(2, 2, 2)
 
-[node name="Rocks2" parent="Scenery" instance=ExtResource("8")]
-position = Vector3(-8, 0, -6)
+[node name="TreeHigh2" parent="Scenery" instance=ExtResource("12")]
+position = Vector3(-24, 0, -8)
+rotation_degrees = Vector3(0, 90, 0)
+scale = Vector3(2, 2, 2)
+
+[node name="TreeHigh3" parent="Scenery" instance=ExtResource("12")]
+position = Vector3(8, 0, -18)
 rotation_degrees = Vector3(0, 160, 0)
 scale = Vector3(2, 2, 2)
 
-[node name="Stones1" parent="Scenery" instance=ExtResource("9")]
-position = Vector3(-11, 0, 4)
+[node name="TreeCrooked1" parent="Scenery" instance=ExtResource("13")]
+position = Vector3(-14, 0, -25)
+scale = Vector3(2.2, 2.2, 2.2)
+
+[node name="TreeCrooked2" parent="Scenery" instance=ExtResource("13")]
+position = Vector3(14, 0, 12)
+rotation_degrees = Vector3(0, 220, 0)
+scale = Vector3(2.2, 2.2, 2.2)
+
+[node name="Pine1" parent="Scenery" instance=ExtResource("11")]
+position = Vector3(24, 0, -12)
+scale = Vector3(2.5, 2.5, 2.5)
+
+[node name="Pine2" parent="Scenery" instance=ExtResource("11")]
+position = Vector3(-3, 0, 26)
+rotation_degrees = Vector3(0, 100, 0)
+scale = Vector3(2.5, 2.5, 2.5)
+
+[node name="Pine3" parent="Scenery" instance=ExtResource("11")]
+position = Vector3(4, 0, -27)
+rotation_degrees = Vector3(0, 40, 0)
+scale = Vector3(2.5, 2.5, 2.5)
+
+[node name="Hedge1" parent="Scenery" instance=ExtResource("14")]
+position = Vector3(16, 0, 25)
 scale = Vector3(2, 2, 2)
 
-[node name="Stones2" parent="Scenery" instance=ExtResource("9")]
-position = Vector3(12, 0, -9)
-rotation_degrees = Vector3(0, 80, 0)
+[node name="Hedge2" parent="Scenery" instance=ExtResource("14")]
+position = Vector3(25, 0, 16)
+rotation_degrees = Vector3(0, 90, 0)
 scale = Vector3(2, 2, 2)
 
-[node name="FlagBlue" parent="Scenery" instance=ExtResource("10")]
-position = Vector3(3, 0, 16)
+[node name="Lantern1" parent="Scenery" instance=ExtResource("15")]
+position = Vector3(22, 0, 21)
+scale = Vector3(1.8, 1.8, 1.8)
+
+[node name="Fountain" parent="Scenery" instance=ExtResource("17")]
+position = Vector3(0, 0, -2)
+scale = Vector3(1.5, 1.5, 1.5)
+
+[node name="Cart" parent="Scenery" instance=ExtResource("16")]
+position = Vector3(-10, 0, 7)
+rotation_degrees = Vector3(0, 40, 0)
+scale = Vector3(1.6, 1.6, 1.6)
+
+[node name="RockWide1" parent="Scenery" instance=ExtResource("18")]
+position = Vector3(9, 0, -8)
+scale = Vector3(1.6, 1.6, 1.6)
+
+[node name="RockWide2" parent="Scenery" instance=ExtResource("18")]
+position = Vector3(-15, 0, 0)
+rotation_degrees = Vector3(0, 130, 0)
+scale = Vector3(1.6, 1.6, 1.6)
+
+[node name="Stones1" parent="Scenery" instance=ExtResource("19")]
+position = Vector3(18, 0, -20)
 scale = Vector3(2, 2, 2)
 
-[node name="FlagRed" parent="Scenery" instance=ExtResource("10")]
-position = Vector3(-3, 0, -16)
-rotation_degrees = Vector3(0, 180, 0)
+[node name="Flowers1" parent="Scenery" instance=ExtResource("20")]
+position = Vector3(12, 0, 20)
 scale = Vector3(2, 2, 2)
 
-[node name="Flowers1" parent="Scenery" instance=ExtResource("11")]
-position = Vector3(5, 0, 7)
-scale = Vector3(2, 2, 2)
-
-[node name="Flowers2" parent="Scenery" instance=ExtResource("11")]
-position = Vector3(-6, 0, 9)
+[node name="Flowers2" parent="Scenery" instance=ExtResource("20")]
+position = Vector3(-20, 0, 10)
 rotation_degrees = Vector3(0, 120, 0)
 scale = Vector3(2, 2, 2)
 
-[node name="HUD" parent="." instance=ExtResource("4")]
+[node name="Grass1" parent="Scenery" instance=ExtResource("21")]
+position = Vector3(6, 0, 14)
+scale = Vector3(2, 2, 2)
+
+[node name="Grass2" parent="Scenery" instance=ExtResource("21")]
+position = Vector3(-8, 0, -20)
+scale = Vector3(2, 2, 2)
+
+[node name="HUD" parent="." instance=ExtResource("3")]
+
+[connection signal="timeout" from="FogOfWar/Tick" to="FogOfWar" method="_on_tick_timeout"]

@@ -1,0 +1,76 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/workshop.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/buildings/stall.glb" id="2"]
+[ext_resource type="PackedScene" path="res://assets/buildings/wheel.glb" id="3"]
+[ext_resource type="PackedScene" path="res://assets/buildings/lantern.glb" id="4"]
+
+[sub_resource type="BoxShape3D" id="Shape_1"]
+size = Vector3(1.6, 1.2, 2.2)
+
+[sub_resource type="CylinderMesh" id="Disc_1"]
+top_radius = 1.4
+bottom_radius = 1.4
+height = 0.04
+
+[sub_resource type="StandardMaterial3D" id="Mat_team"]
+shading_mode = 0
+albedo_color = Color(0.25, 0.5, 1, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_back"]
+size = Vector3(1.6, 0.14, 0.03)
+
+[sub_resource type="StandardMaterial3D" id="Mat_back"]
+shading_mode = 0
+albedo_color = Color(0.55, 0.12, 0.12, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_fill"]
+size = Vector3(1.6, 0.14, 0.032)
+
+[sub_resource type="StandardMaterial3D" id="Mat_fill"]
+shading_mode = 0
+albedo_color = Color(0.25, 0.9, 0.3, 1)
+
+[node name="Workshop" type="StaticBody3D"]
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("1")
+max_health = 250.0
+radius = 1.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.6, 0)
+shape = SubResource("Shape_1")
+
+[node name="TeamDisc" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.02, 0)
+mesh = SubResource("Disc_1")
+material_override = SubResource("Mat_team")
+
+[node name="Model" type="Node3D" parent="."]
+scale = Vector3(1.8, 1.8, 1.8)
+
+[node name="Stall" parent="Model" instance=ExtResource("2")]
+
+[node name="Wheel" parent="Model" instance=ExtResource("3")]
+position = Vector3(0.55, 0, -0.45)
+rotation_degrees = Vector3(0, 25, 0)
+
+[node name="Lantern" parent="Model" instance=ExtResource("4")]
+position = Vector3(-0.5, 0, 0.45)
+
+[node name="HealthBar" type="Node3D" parent="."]
+position = Vector3(0, 2, 0)
+rotation_degrees = Vector3(-50, 0, 0)
+
+[node name="Back" type="MeshInstance3D" parent="HealthBar"]
+mesh = SubResource("BoxMesh_back")
+material_override = SubResource("Mat_back")
+
+[node name="FillPivot" type="Node3D" parent="HealthBar"]
+position = Vector3(-0.8, 0, 0)
+
+[node name="Fill" type="MeshInstance3D" parent="HealthBar/FillPivot"]
+position = Vector3(0.8, 0, 0.003)
+mesh = SubResource("BoxMesh_fill")
+material_override = SubResource("Mat_fill")

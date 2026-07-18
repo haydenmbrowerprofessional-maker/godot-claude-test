@@ -12,6 +12,8 @@ signal died(unit: Unit)
 @export var attack_range := 1.5
 @export var attack_cooldown := 1.0
 @export var aggro_radius := 5.0
+## How far this unit lifts the fog.
+@export var vision_radius := 5.0
 
 var health: float
 var selected := false
@@ -56,7 +58,7 @@ func _physics_process(delta: float) -> void:
 			if _cooldown == 0.0:
 				_cooldown = attack_cooldown
 				_play("attack-melee-right")
-				attack_target.take_damage(attack_damage)
+				attack_target.take_damage(attack_damage * _damage_multiplier())
 	elif has_move_target:
 		var offset := move_target - global_position
 		offset.y = 0.0
@@ -136,18 +138,33 @@ func _update_health_bar() -> void:
 	$HealthBar/FillPivot.scale.x = clampf(health / max_health, 0.0, 1.0)
 
 
+func _damage_multiplier() -> float:
+	if team != 0:
+		return 1.0
+	var state := get_node_or_null("/root/GameState")
+	return state.damage_multiplier if state else 1.0
+
+
 func _on_scan_timer_timeout() -> void:
-	# Auto-aggro: idle units pick the nearest enemy in range.
+	# Auto-aggro: idle units pick the nearest enemy in range,
+	# preferring units over buildings.
 	if attack_target != null or has_move_target:
 		return
-	var nearest: Unit = null
+	var target = _nearest_enemy_in("units")
+	if target == null:
+		target = _nearest_enemy_in("buildings")
+	if target:
+		attack_target = target
+
+
+func _nearest_enemy_in(group: String):
+	var nearest = null
 	var nearest_dist := aggro_radius
-	for other: Unit in get_tree().get_nodes_in_group("units"):
-		if other.team == team or not is_instance_valid(other):
+	for other in get_tree().get_nodes_in_group(group):
+		if other.team == team or not is_instance_valid(other) or other.health <= 0.0:
 			continue
 		var dist := global_position.distance_to(other.global_position)
 		if dist < nearest_dist:
 			nearest_dist = dist
 			nearest = other
-	if nearest:
-		attack_target = nearest
+	return nearest

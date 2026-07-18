@@ -1,61 +1,162 @@
 extends Node3D
-## Game root: spawns both armies by cloning the unit scenes, routes
-## mouse input into selection and orders, and tracks win/lose.
+## Game root: exploration map with fog of war, building placement with a
+## tech tree, enemy camps, and hidden gems. Win by building the Grand Totem;
+## lose if every friendly unit and building is gone.
 
-@export var blue_unit_scene: PackedScene
-@export var red_unit_scene: PackedScene
-@export var units_per_team := 6
+const GHOST_SCENE := preload("res://scenes/ghost.tscn")
+const BUILDINGS := {
+	"hut": {"scene": preload("res://scenes/buildings/hut.tscn"), "spacing": 2.8},
+	"watchtower": {"scene": preload("res://scenes/buildings/watchtower.tscn"), "spacing": 3.0},
+	"workshop": {"scene": preload("res://scenes/buildings/workshop.tscn"), "spacing": 3.0},
+	"grand_totem": {"scene": preload("res://scenes/buildings/grand_totem.tscn"), "spacing": 3.2},
+}
 
 const RAY_LENGTH := 300.0
 const LAYER_GROUND := 1
 const LAYER_UNITS := 2
 const CLICK_DRAG_THRESHOLD := 8.0
+const GEMS_NEEDED := 3
+const BUILD_LIMIT := 27.0
+
+@export var starter_unit_scene: PackedScene
+@export var starter_units := 3
+@export var base_center := Vector3(20, 0.1, 20)
 
 var selected: Array[Unit] = []
-var _blue_alive := 0
-var _red_alive := 0
+var _built_counts := {}
+var _blue_units := 0
 var _blue_buildings := 0
-var _red_buildings := 0
+var _camps_left := 0
+var _placing := ""
+var _ghost: Node3D = null
 var _drag_start := Vector2.ZERO
 var _dragging := false
 var _game_over := false
 
 
 func _ready() -> void:
-	for building: Building in $Buildings.get_children():
-		building.unit_spawned.connect(_register_unit)
-		building.died.connect(_on_building_died)
-		if building.team == 0:
-			_blue_buildings += 1
-		else:
-			_red_buildings += 1
-	_spawn_army(blue_unit_scene, Vector3(0, 0.1, 12))
-	_spawn_army(red_unit_scene, Vector3(0, 0.1, -12))
+	var state := get_node_or_null("/root/GameState")
+	if state:
+		state.reset()
+		state.gems_changed.connect(func(_count):
+			_update_objectives()
+			_update_build_bar())
+		state.totem_built.connect(func(): _end_game("Victory! The Grand Totem stands."))
+	$HUD.build_requested.connect(_on_build_requested)
+	for building in $Buildings.get_children():
+		_register_building(building)
+	for i in starter_units:
+		var unit: Unit = starter_unit_scene.instantiate()
+		unit.position = base_center + Vector3((i - 1) * 1.5, 0.0, 2.5)
+		_register_unit(unit)
+	_update_build_bar()
+	_update_objectives()
 	_update_hud()
 
 
-func _spawn_army(scene: PackedScene, center: Vector3) -> void:
-	for i in units_per_team:
-		# Clone the team's unit scene rather than building nodes in code.
-		var unit: Unit = scene.instantiate()
-		var column := i % 3 - 1
-		var row := floori(i / 3.0)
-		unit.position = center + Vector3(column * 1.6, 0.0, row * 1.6 * signf(center.z))
-		_register_unit(unit)
+func _process(_delta: float) -> void:
+	if _placing == "" or _ghost == null:
+		return
+	var hit := _raycast(get_viewport().get_mouse_position(), LAYER_GROUND)
+	if hit.is_empty():
+		_ghost.visible = false
+		return
+	_ghost.visible = true
+	var pos: Vector3 = hit["position"]
+	_ghost.position = Vector3(pos.x, 0.06, pos.z)
+	_ghost.set_valid(_placement_valid(pos))
 
+
+# --- Registration -----------------------------------------------------------
 
 func _register_unit(unit: Unit) -> void:
 	unit.died.connect(_on_unit_died)
 	$Units.add_child(unit)
 	if unit.team == 0:
-		_blue_alive += 1
-	else:
-		_red_alive += 1
+		_blue_units += 1
 
+
+func _register_building(building: Destructible) -> void:
+	building.died.connect(_on_building_died)
+	if building is Spawner:
+		building.unit_spawned.connect(_register_unit)
+	if building.team == 0:
+		_blue_buildings += 1
+		var id := _building_id(building)
+		if id != "":
+			_built_counts[id] = _built_counts.get(id, 0) + 1
+	else:
+		_camps_left += 1
+
+
+func _building_id(building: Destructible) -> String:
+	for id in BUILDINGS:
+		if building.scene_file_path == BUILDINGS[id].scene.resource_path:
+			return id
+	return ""
+
+
+# --- Building placement -----------------------------------------------------
+
+func _on_build_requested(id: String) -> void:
+	if _game_over:
+		return
+	_cancel_placement()
+	_placing = id
+	_ghost = GHOST_SCENE.instantiate()
+	add_child(_ghost)
+
+
+func _placement_valid(pos: Vector3) -> bool:
+	if absf(pos.x) > BUILD_LIMIT or absf(pos.z) > BUILD_LIMIT:
+		return false
+	if not $FogOfWar.is_revealed(pos):
+		return false
+	var spacing: float = BUILDINGS[_placing].spacing
+	for building in get_tree().get_nodes_in_group("buildings"):
+		var d: Vector3 = building.global_position - pos
+		d.y = 0.0
+		if d.length() < spacing + building.radius:
+			return false
+	return true
+
+
+func _place_building(pos: Vector3) -> void:
+	# Clone the building's scene; scripts never assemble buildings node-by-node.
+	var building: Destructible = BUILDINGS[_placing].scene.instantiate()
+	building.position = Vector3(pos.x, 0.0, pos.z)
+	$Buildings.add_child(building)
+	_register_building(building)
+	_cancel_placement()
+	_update_build_bar()
+	_update_objectives()
+
+
+func _cancel_placement() -> void:
+	_placing = ""
+	if _ghost:
+		_ghost.queue_free()
+		_ghost = null
+
+
+# --- Input ------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _game_over:
 		return
+
+	if _placing != "":
+		if event is InputEventMouseButton and event.pressed:
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				var hit := _raycast(event.position, LAYER_GROUND)
+				if not hit.is_empty() and _placement_valid(hit["position"]):
+					_place_building(hit["position"])
+			elif event.button_index == MOUSE_BUTTON_RIGHT:
+				_cancel_placement()
+		elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+			_cancel_placement()
+		return
+
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
@@ -77,6 +178,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _drag_rect(current: Vector2) -> Rect2:
 	return Rect2(_drag_start, current - _drag_start).abs()
 
+
+# --- Selection and orders ---------------------------------------------------
 
 func _click_select(screen_pos: Vector2, additive: bool) -> void:
 	var hit := _raycast(screen_pos, LAYER_UNITS)
@@ -111,7 +214,7 @@ func _issue_order(screen_pos: Vector2) -> void:
 	if hit.is_empty():
 		return
 	var collider: Object = hit.get("collider")
-	var is_target := collider is Unit or collider is Building
+	var is_target := collider is Unit or collider is Destructible
 	if is_target and collider.team != 0:
 		for unit in selected:
 			unit.command_attack(collider)
@@ -146,35 +249,63 @@ func _clear_selection() -> void:
 	selected.clear()
 
 
+# --- Progression ------------------------------------------------------------
+
 func _on_unit_died(unit: Unit) -> void:
 	if unit.team == 0:
-		_blue_alive -= 1
-	else:
-		_red_alive -= 1
+		_blue_units -= 1
 	selected.erase(unit)
 	_update_hud()
 	_check_end()
 
 
-func _on_building_died(building: Building) -> void:
+func _on_building_died(building: Destructible) -> void:
 	if building.team == 0:
 		_blue_buildings -= 1
+		var id := _building_id(building)
+		if id != "":
+			_built_counts[id] = _built_counts.get(id, 1) - 1
 	else:
-		_red_buildings -= 1
+		_camps_left -= 1
+	_update_build_bar()
+	_update_objectives()
 	_check_end()
+
+
+func _gems() -> int:
+	var state := get_node_or_null("/root/GameState")
+	return state.gems if state else 0
+
+
+func _update_build_bar() -> void:
+	var have_hut: bool = _built_counts.get("hut", 0) > 0
+	var have_tower: bool = _built_counts.get("watchtower", 0) > 0
+	var have_workshop: bool = _built_counts.get("workshop", 0) > 0
+	$HUD.set_build_state("hut", true,
+		"Trains fighters (max 3 alive per hut).")
+	$HUD.set_build_state("watchtower", have_hut,
+		"Shoots nearby enemies, wide vision." if have_hut else "Requires a Hut.")
+	$HUD.set_build_state("workshop", have_tower,
+		"+30% unit damage while standing." if have_tower else "Requires a Watchtower.")
+	$HUD.set_build_state("grand_totem", have_workshop and _gems() >= GEMS_NEEDED,
+		"Build to win the game!" if have_workshop and _gems() >= GEMS_NEEDED
+		else "Requires a Workshop and %d gems." % GEMS_NEEDED)
+
+
+func _update_objectives() -> void:
+	$HUD.set_objectives("Gems: %d/%d    Camps left: %d" % [_gems(), GEMS_NEEDED, _camps_left])
 
 
 func _check_end() -> void:
 	if _game_over:
 		return
-	if _red_alive == 0 and _red_buildings == 0:
-		_end_game("Victory!")
-	elif _blue_alive == 0 and _blue_buildings == 0:
-		_end_game("Defeat")
+	if _blue_units <= 0 and _blue_buildings <= 0:
+		_end_game("Defeat — your tribe is lost.")
 
 
 func _end_game(message: String) -> void:
 	_game_over = true
+	_cancel_placement()
 	_clear_selection()
 	$HUD.show_end(message)
 
