@@ -14,6 +14,8 @@ signal died(unit: Unit)
 @export var aggro_radius := 5.0
 ## How far this unit lifts the fog.
 @export var vision_radius := 5.0
+## Ranged units attack from [member attack_range] and play a shoot animation.
+@export var ranged := false
 
 var health: float
 var selected := false
@@ -57,7 +59,7 @@ func _physics_process(delta: float) -> void:
 			_face(attack_target.global_position)
 			if _cooldown == 0.0:
 				_cooldown = attack_cooldown
-				_play("attack-melee-right")
+				_play("holding-right-shoot" if ranged else "attack-melee-right")
 				attack_target.take_damage(attack_damage * _damage_multiplier())
 	elif has_move_target:
 		var offset := move_target - global_position

@@ -1,7 +1,9 @@
-[gd_scene load_steps=30 format=3]
+[gd_scene load_steps=32 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/unit_blue.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/unit_knight_red.tscn" id="22"]
+[ext_resource type="PackedScene" path="res://scenes/unit_archer_red.tscn" id="23"]
 [ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="3"]
 [ext_resource type="Script" path="res://scripts/camera_rig.gd" id="4"]
 [ext_resource type="Script" path="res://scripts/fog_of_war.gd" id="5"]
@@ -107,6 +109,8 @@ rally_offset = Vector3(0, 0, -2.4)
 
 [node name="CampCenter" parent="Buildings" instance=ExtResource("8")]
 position = Vector3(0, 0, 6)
+unit_scene = ExtResource("22")
+spawn_interval = 10.0
 rally_offset = Vector3(2.5, 0, 2)
 
 [node name="CampWest" parent="Buildings" instance=ExtResource("8")]
@@ -122,6 +126,7 @@ rally_offset = Vector3(0, 0, 2.5)
 [node name="CampFar" parent="Buildings" instance=ExtResource("8")]
 position = Vector3(-21, 0, -19)
 rotation_degrees = Vector3(0, 200, 0)
+unit_scene = ExtResource("23")
 rally_offset = Vector3(2.5, 0, 2)
 
 [node name="Gems" type="Node3D" parent="."]

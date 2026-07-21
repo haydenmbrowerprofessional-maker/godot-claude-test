@@ -6,7 +6,9 @@ extends Node3D
 const GHOST_SCENE := preload("res://scenes/ghost.tscn")
 const BUILDINGS := {
 	"hut": {"scene": preload("res://scenes/buildings/hut.tscn"), "spacing": 2.8},
+	"archery_range": {"scene": preload("res://scenes/buildings/archery_range.tscn"), "spacing": 2.8},
 	"watchtower": {"scene": preload("res://scenes/buildings/watchtower.tscn"), "spacing": 3.0},
+	"barracks": {"scene": preload("res://scenes/buildings/barracks.tscn"), "spacing": 3.0},
 	"workshop": {"scene": preload("res://scenes/buildings/workshop.tscn"), "spacing": 3.0},
 	"grand_totem": {"scene": preload("res://scenes/buildings/grand_totem.tscn"), "spacing": 3.2},
 }
@@ -23,6 +25,7 @@ const BUILD_LIMIT := 27.0
 @export var base_center := Vector3(20, 0.1, 20)
 
 var selected: Array[Unit] = []
+var _selected_tower: Tower = null
 var _built_counts := {}
 var _blue_units := 0
 var _blue_buildings := 0
@@ -43,6 +46,7 @@ func _ready() -> void:
 			_update_build_bar())
 		state.totem_built.connect(func(): _end_game("Victory! The Grand Totem stands."))
 	$HUD.build_requested.connect(_on_build_requested)
+	$HUD.upgrade_requested.connect(_on_upgrade_requested)
 	for building in $Buildings.get_children():
 		_register_building(building)
 	for i in starter_units:
@@ -130,6 +134,9 @@ func _place_building(pos: Vector3) -> void:
 	_cancel_placement()
 	_update_build_bar()
 	_update_objectives()
+	# A new Workshop may unlock the top tower tier for a selected tower.
+	if is_instance_valid(_selected_tower):
+		_refresh_upgrade_panel()
 
 
 func _cancel_placement() -> void:
@@ -182,16 +189,24 @@ func _drag_rect(current: Vector2) -> Rect2:
 # --- Selection and orders ---------------------------------------------------
 
 func _click_select(screen_pos: Vector2, additive: bool) -> void:
-	var hit := _raycast(screen_pos, LAYER_UNITS)
+	var collider: Object = _raycast(screen_pos, LAYER_UNITS).get("collider")
+	# A friendly tower opens the upgrade panel instead of joining a squad.
+	if collider is Tower and collider.team == 0:
+		_clear_selection()
+		_select_tower(collider)
+		_update_hud()
+		return
+	_deselect_tower()
 	if not additive:
 		_clear_selection()
-	var unit := hit.get("collider") as Unit
+	var unit := collider as Unit
 	if unit and unit.team == 0:
 		_add_to_selection(unit)
 	_update_hud()
 
 
 func _box_select(rect: Rect2, additive: bool) -> void:
+	_deselect_tower()
 	if not additive:
 		_clear_selection()
 	var camera := get_viewport().get_camera_3d()
@@ -249,6 +264,51 @@ func _clear_selection() -> void:
 	selected.clear()
 
 
+# --- Tower selection and upgrades -------------------------------------------
+
+func _select_tower(tower: Tower) -> void:
+	_deselect_tower()
+	_selected_tower = tower
+	tower.set_selected(true)
+	_refresh_upgrade_panel()
+
+
+func _deselect_tower() -> void:
+	if is_instance_valid(_selected_tower):
+		_selected_tower.set_selected(false)
+	_selected_tower = null
+	$HUD.hide_upgrade()
+
+
+func _refresh_upgrade_panel() -> void:
+	var t := _selected_tower
+	if not is_instance_valid(t):
+		return
+	var info := "%s Tower — Lv %d\nDamage %d · Range %d" % [
+		t.level_name(), t.level, int(t.attack_damage), int(t.attack_range)]
+	if not t.can_upgrade():
+		$HUD.show_upgrade(info + "\n(max level)", "Maxed", false)
+	elif not _upgrade_allowed(t):
+		$HUD.show_upgrade(info + "\nNext tier needs a Workshop", "Upgrade", false)
+	else:
+		var next_name: String = Tower.LEVELS[t.level]["name"]
+		$HUD.show_upgrade(info, "Upgrade → %s" % next_name, true)
+
+
+func _upgrade_allowed(t: Tower) -> bool:
+	# The top tier (Lv2 → Lv3) is gated behind the Workshop.
+	if t.level >= 2:
+		return _built_counts.get("workshop", 0) > 0
+	return true
+
+
+func _on_upgrade_requested() -> void:
+	var t := _selected_tower
+	if is_instance_valid(t) and t.can_upgrade() and _upgrade_allowed(t):
+		t.upgrade()
+		_refresh_upgrade_panel()
+
+
 # --- Progression ------------------------------------------------------------
 
 func _on_unit_died(unit: Unit) -> void:
@@ -267,6 +327,11 @@ func _on_building_died(building: Destructible) -> void:
 			_built_counts[id] = _built_counts.get(id, 1) - 1
 	else:
 		_camps_left -= 1
+	if building == _selected_tower:
+		_deselect_tower()
+	elif is_instance_valid(_selected_tower):
+		# Losing a Workshop can re-lock the top tower tier.
+		_refresh_upgrade_panel()
 	_update_build_bar()
 	_update_objectives()
 	_check_end()
@@ -282,11 +347,15 @@ func _update_build_bar() -> void:
 	var have_tower: bool = _built_counts.get("watchtower", 0) > 0
 	var have_workshop: bool = _built_counts.get("workshop", 0) > 0
 	$HUD.set_build_state("hut", true,
-		"Trains fighters (max 3 alive per hut).")
+		"Trains Soldiers — balanced melee (max 3 alive).")
+	$HUD.set_build_state("archery_range", have_hut,
+		"Trains Archers — ranged, fragile." if have_hut else "Requires a Hut.")
 	$HUD.set_build_state("watchtower", have_hut,
-		"Shoots nearby enemies, wide vision." if have_hut else "Requires a Hut.")
+		"Shoots nearby enemies; upgradeable." if have_hut else "Requires a Hut.")
+	$HUD.set_build_state("barracks", have_tower,
+		"Trains Knights — tanky, hard-hitting." if have_tower else "Requires a Watchtower.")
 	$HUD.set_build_state("workshop", have_tower,
-		"+30% unit damage while standing." if have_tower else "Requires a Watchtower.")
+		"+30% unit damage; unlocks top tower tier." if have_tower else "Requires a Watchtower.")
 	$HUD.set_build_state("grand_totem", have_workshop and _gems() >= GEMS_NEEDED,
 		"Build to win the game!" if have_workshop and _gems() >= GEMS_NEEDED
 		else "Requires a Workshop and %d gems." % GEMS_NEEDED)
@@ -307,6 +376,7 @@ func _end_game(message: String) -> void:
 	_game_over = true
 	_cancel_placement()
 	_clear_selection()
+	_deselect_tower()
 	$HUD.show_end(message)
 
 
