@@ -8,7 +8,7 @@ extends MeshInstance3D
 ## World-space width the fog plane (and mask) covers, centered on origin.
 @export var world_size := 90.0
 
-const RES := 160
+const RES := 320
 
 var _img: Image
 var _tex: ImageTexture

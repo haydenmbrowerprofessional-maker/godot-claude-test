@@ -1,2 +1,5 @@
 # Godot 4 generated files
 .godot/
+
+# Exported builds (published as GitHub Releases instead)
+build/

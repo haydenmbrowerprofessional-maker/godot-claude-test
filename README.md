@@ -2,11 +2,37 @@
 
 A small real-time strategy game built in **Godot 4**, inspired by *Totem Tribe*: explore a fog-covered fantasy map, expand your village through a building tech tree, clear enemy camps, hunt hidden gems, and raise the Grand Totem to win.
 
-## How to run
+## Download and play — no Godot required
 
-1. Install [Godot 4.3+](https://godotengine.org/download) (standard build, not .NET).
+Grab a build from the [**Releases page**](https://github.com/haydenmbrowerprofessional-maker/godot-claude-test/releases) and run it. Nothing to install.
+
+| Platform | File | How to run |
+|---|---|---|
+| Windows | `MiniCommand-windows.zip` | Unzip, double-click `MiniCommand.exe` |
+| Linux | `MiniCommand-linux.zip` | Unzip, `chmod +x MiniCommand.x86_64`, then run it |
+| Browser | `MiniCommand-web.zip` | Unzip and serve the folder over HTTP (e.g. `python -m http.server`), then open the page |
+
+Each desktop build is a **single self-contained executable** — the game data is embedded, so there are no extra files to keep alongside it.
+
+> On first launch Windows SmartScreen may warn about an unrecognized app, since the build isn't code-signed. Choose *More info → Run anyway*.
+
+## Run from source (optional)
+
+1. Install [Godot 4.5](https://godotengine.org/download) (standard build, not .NET).
 2. Open Godot → **Import** → select this folder's `project.godot`.
 3. Press **F5** (Run Project).
+
+## Building it yourself
+
+Requires Godot 4.5 plus its export templates (in the editor: *Editor → Manage Export Templates*).
+
+```bash
+godot --headless --export-release "Windows Desktop" build/windows/MiniCommand.exe
+godot --headless --export-release "Linux"           build/linux/MiniCommand.x86_64
+godot --headless --export-release "Web"             build/web/index.html
+```
+
+Presets live in `export_presets.cfg`. The web preset has thread support disabled so it runs on static hosts that don't send cross-origin isolation headers.
 
 ## How to play
 
@@ -86,6 +112,19 @@ godot --headless -s tools/fog_smoke_test.gd        # reveal persists, gates enem
 godot --headless -s tools/units_smoke_test.gd      # unit variants + ranged combat
 godot --headless -s tools/tower_smoke_test.gd      # tower upgrade tiers + firing
 ```
+
+## Art review tools
+
+Visual bugs don't show up in headless tests, so `tools/` also has renderers that save PNGs you can inspect:
+
+```bash
+godot --path . -s tools/screenshot.gd                     # full-res shot of the live game
+godot --path . -s tools/preview.gd -- res://a.glb ...     # models side by side on a neutral backdrop
+godot --headless -s tools/inspect_materials.gd            # which texture each model actually binds
+godot --headless -s tools/inspect_assets.gd -- res://a.glb  # model size + animation list
+```
+
+`inspect_materials.gd` exists because of a real bug: models imported before their `colormap.png` was in place cached a *textureless* material and rendered pure white, and re-running `--import` didn't redo it (a clean reimport did).
 
 ## Roadmap
 

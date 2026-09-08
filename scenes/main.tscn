@@ -36,7 +36,10 @@ sky_material = SubResource("SkyMat_1")
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 2
 sky = SubResource("Sky_1")
-tonemap_mode = 2
+ambient_light_source = 2
+ambient_light_color = Color(0.62, 0.64, 0.7, 1)
+ambient_light_energy = 0.35
+tonemap_mode = 0
 
 [sub_resource type="BoxMesh" id="BoxMesh_ground"]
 size = Vector3(60, 0.5, 60)
@@ -48,7 +51,7 @@ albedo_color = Color(0.38, 0.56, 0.32, 1)
 size = Vector3(60, 0.5, 60)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_fog"]
-size = Vector2(90, 90)
+size = Vector2(70, 70)
 
 [sub_resource type="ShaderMaterial" id="FogMat_1"]
 render_priority = 10
@@ -80,7 +83,7 @@ position = Vector3(0, -0.25, 0)
 shape = SubResource("BoxShape3D_ground")
 
 [node name="CameraRig" type="Node3D" parent="."]
-position = Vector3(20, 0, 17)
+position = Vector3(19, 0, 21)
 script = ExtResource("4")
 map_limit = 26.0
 
@@ -93,6 +96,7 @@ position = Vector3(0, 8, 0)
 mesh = SubResource("PlaneMesh_fog")
 material_override = SubResource("FogMat_1")
 script = ExtResource("5")
+world_size = 70.0
 
 [node name="Tick" type="Timer" parent="FogOfWar"]
 wait_time = 0.25

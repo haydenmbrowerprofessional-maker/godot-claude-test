@@ -5,10 +5,10 @@ extends Node3D
 @export var pan_speed := 14.0
 @export var map_limit := 18.0
 
-const ZOOM_NEAR := Vector3(0, 7, 4.5)
-const ZOOM_FAR := Vector3(0, 24, 15)
+const ZOOM_NEAR := Vector3(0, 6, 4.0)
+const ZOOM_FAR := Vector3(0, 20, 13)
 
-var _zoom := 0.5
+var _zoom := 0.3
 
 @onready var camera: Camera3D = $Camera3D
 
