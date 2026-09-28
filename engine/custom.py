@@ -35,3 +35,6 @@ module_gdscript_enabled = "yes"          # game logic
 module_godot_physics_3d_enabled = "yes"  # CharacterBody3D, raycasts, Area3D
 module_freetype_enabled = "yes"          # font rasterizing for the HUD
 module_text_server_fb_enabled = "yes"    # lightweight text server (no ICU/HarfBuzz)
+
+# Engine patches (engine/patches/) add this option.
+builtin_controller_mappings = "no"  # keyboard/mouse only; skip the gamepad DB

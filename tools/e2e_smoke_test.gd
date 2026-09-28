@@ -8,6 +8,7 @@ extends SceneTree
 ## vital when running on a stripped custom engine, where a compiled-out class
 ## or method only fails at the moment the code path actually executes.
 ## Run: godot --headless -s tools/e2e_smoke_test.gd
+## Add `-- --shots` (and drop --headless) to also save UI screenshots to user://.
 
 var frames := 0
 var step := 0
@@ -147,6 +148,7 @@ func _test_tower_upgrade_after_workshop() -> void:
 	if tower.level != 3:
 		return _fail("Lv3 upgrade still blocked after Workshop")
 	print("tower OK: Lv3 %s after Workshop" % tower.level_name())
+	_shot("e2e_upgrade_panel")
 	_next()
 
 
@@ -169,6 +171,7 @@ func _check_victory() -> void:
 	if not msg.visible or not msg.text.begins_with("Victory"):
 		return _fail("no victory message after raising the totem (got '%s')" % msg.text)
 	print("victory OK: '%s'" % msg.text)
+	_shot("e2e_victory")
 	main.get_node("HUD/RestartButton").pressed.emit()
 	_next(10)
 
@@ -223,6 +226,17 @@ func _find_building(type: Variant) -> Node:
 		if is_instance_of(b, type) and b.team == 0:
 			return b
 	return null
+
+
+func _shot(name: String) -> void:
+	if not OS.get_cmdline_user_args().has("--shots"):
+		return
+	# Dynamic call: get_texture() returns ViewportTexture, compiled out of the
+	# size-optimized engine.
+	var tex: Texture2D = root.call("get_texture")
+	var path := "user://%s.png" % name
+	tex.get_image().save_png(path)
+	print("SAVED: ", ProjectSettings.globalize_path(path))
 
 
 func _fail(message: String) -> void:

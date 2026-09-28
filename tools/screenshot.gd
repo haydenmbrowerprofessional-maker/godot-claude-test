@@ -15,7 +15,11 @@ func _on_frame() -> void:
 	frames += 1
 	if frames < 150:
 		return
-	var img := root.get_texture().get_image()
+	# Called dynamically: get_texture() is declared to return ViewportTexture,
+	# which the size-optimized engine compiles out (the game never uses it),
+	# and GDScript rejects unknown native types at parse time.
+	var tex: Texture2D = root.call("get_texture")
+	var img := tex.get_image()
 	var out := "user://shot.png"
 	img.save_png(out)
 	print("SAVED: ", ProjectSettings.globalize_path(out))

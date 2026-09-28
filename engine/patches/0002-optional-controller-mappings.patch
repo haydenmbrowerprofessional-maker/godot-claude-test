@@ -1,0 +1,27 @@
+diff --git a/SConstruct b/SConstruct
+index 0d4f12e..a98f531 100644
+--- a/SConstruct
++++ b/SConstruct
+@@ -202,6 +202,7 @@ opts.Add(BoolVariable("use_volk", "Use the volk library to load the Vulkan loade
+ opts.Add(BoolVariable("accesskit", "Use AccessKit C SDK", True))
+ opts.Add(("accesskit_sdk_path", "Path to the AccessKit C SDK", ""))
+ opts.Add(BoolVariable("sdl", "Enable the SDL3 input driver", True))
++opts.Add(BoolVariable("builtin_controller_mappings", "Embed the SDL game controller mapping database", True))
+ 
+ # Advanced options
+ opts.Add(
+diff --git a/core/input/SCsub b/core/input/SCsub
+index 521f770..6efb48e 100644
+--- a/core/input/SCsub
++++ b/core/input/SCsub
+@@ -11,6 +11,10 @@ controller_databases = [
+     "godotcontrollerdb.txt",
+ ]
+ 
++# Games without gamepad support can skip the ~230 KB mapping database.
++if not env["builtin_controller_mappings"]:
++    controller_databases = []
++
+ gensource = env.CommandNoCache(
+     "default_controller_mappings.gen.cpp",
+     controller_databases,
