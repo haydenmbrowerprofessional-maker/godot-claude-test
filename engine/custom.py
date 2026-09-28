@@ -38,3 +38,4 @@ module_text_server_fb_enabled = "yes"    # lightweight text server (no ICU/HarfB
 
 # Engine patches (engine/patches/) add this option.
 builtin_controller_mappings = "no"  # keyboard/mouse only; skip the gamepad DB
+freetype_minimal = "yes"            # TrueType only: no PS/CFF/bitmap formats, hinting VM, var fonts

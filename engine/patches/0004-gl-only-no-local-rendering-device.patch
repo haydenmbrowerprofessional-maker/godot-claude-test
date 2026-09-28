@@ -1,0 +1,23 @@
+diff --git a/servers/rendering_server.cpp b/servers/rendering_server.cpp
+index 8202dff..9257003 100644
+--- a/servers/rendering_server.cpp
++++ b/servers/rendering_server.cpp
+@@ -1892,11 +1892,18 @@ RenderingDevice *RenderingServer::get_rendering_device() const {
+ }
+ 
+ RenderingDevice *RenderingServer::create_local_rendering_device() const {
++#ifdef RD_ENABLED
+ 	RenderingDevice *device = RenderingDevice::get_singleton();
+ 	if (!device) {
+ 		return nullptr;
+ 	}
+ 	return device->create_local_device();
++#else
++	// No RenderingDevice backend is compiled in (GL-only build), so there is never a
++	// global device to spawn from. Returning early lets the linker drop the unused
++	// RenderingDevice implementation, which this call would otherwise keep alive.
++	return nullptr;
++#endif
+ }
+ 
+ static Vector<Ref<Image>> _get_imgvec(const TypedArray<Image> &p_layers) {

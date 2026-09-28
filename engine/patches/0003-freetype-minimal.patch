@@ -1,0 +1,269 @@
+diff --git a/SConstruct b/SConstruct
+index a98f531..4b8bf00 100644
+--- a/SConstruct
++++ b/SConstruct
+@@ -273,6 +273,7 @@ opts.Add(BoolVariable("builtin_clipper2", "Use the built-in Clipper2 library", T
+ opts.Add(BoolVariable("builtin_embree", "Use the built-in Embree library", True))
+ opts.Add(BoolVariable("builtin_enet", "Use the built-in ENet library", True))
+ opts.Add(BoolVariable("builtin_freetype", "Use the built-in FreeType library", True))
++opts.Add(BoolVariable("freetype_minimal", "Build FreeType with only TrueType support (no bytecode hinting, PS/CFF/bitmap formats, variable fonts)", False))
+ opts.Add(BoolVariable("builtin_msdfgen", "Use the built-in MSDFgen library", True))
+ opts.Add(BoolVariable("builtin_glslang", "Use the built-in glslang library", True))
+ opts.Add(BoolVariable("builtin_graphite", "Use the built-in Graphite library", True))
+diff --git a/modules/freetype/SCsub b/modules/freetype/SCsub
+index 0a52ef4..42fff84 100644
+--- a/modules/freetype/SCsub
++++ b/modules/freetype/SCsub
+@@ -57,6 +57,10 @@ if env["builtin_freetype"]:
+         "src/type42/type42.c",
+         "src/winfonts/winfnt.c",
+     ]
++    if env["freetype_minimal"]:
++        # TrueType-only build; sfnt.c is added separately below.
++        thirdparty_sources = [f for f in thirdparty_sources if f in ['src/autofit/autofit.c', 'src/base/ftbase.c', 'src/base/ftbbox.c', 'src/base/ftbitmap.c', 'src/base/ftdebug.c', 'src/base/ftglyph.c', 'src/base/ftinit.c', 'src/base/ftmm.c', 'src/base/ftstroke.c', 'src/base/ftsynth.c', 'src/base/ftsystem.c', 'src/smooth/smooth.c', 'src/truetype/truetype.c']]
++        env_freetype.Append(CPPDEFINES=["GODOT_FREETYPE_MINIMAL"])
+     thirdparty_sources = [thirdparty_dir + file for file in thirdparty_sources]
+ 
+     if env["brotli"]:
+@@ -66,7 +70,9 @@ if env["builtin_freetype"]:
+     # Also needed in main env for scene/
+     env.Prepend(CPPEXTPATH=[thirdparty_dir + "/include"])
+ 
+-    env_freetype.Append(CPPDEFINES=["FT2_BUILD_LIBRARY", "FT_CONFIG_OPTION_USE_PNG", "FT_CONFIG_OPTION_SYSTEM_ZLIB"])
++    env_freetype.Append(CPPDEFINES=["FT2_BUILD_LIBRARY"])
++    if not env["freetype_minimal"]:
++        env_freetype.Append(CPPDEFINES=["FT_CONFIG_OPTION_USE_PNG", "FT_CONFIG_OPTION_SYSTEM_ZLIB"])
+ 
+     # Also requires libpng headers
+     if env["builtin_libpng"]:
+diff --git a/thirdparty/freetype/include/freetype/config/ftmodule.h b/thirdparty/freetype/include/freetype/config/ftmodule.h
+index b315bab..6f560e8 100644
+--- a/thirdparty/freetype/include/freetype/config/ftmodule.h
++++ b/thirdparty/freetype/include/freetype/config/ftmodule.h
+@@ -12,22 +12,52 @@
+ 
+ FT_USE_MODULE( FT_Module_Class, autofit_module_class )
+ FT_USE_MODULE( FT_Driver_ClassRec, tt_driver_class )
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Driver_ClassRec, t1_driver_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Driver_ClassRec, cff_driver_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Driver_ClassRec, t1cid_driver_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Driver_ClassRec, pfr_driver_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Driver_ClassRec, t42_driver_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Driver_ClassRec, winfnt_driver_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Driver_ClassRec, pcf_driver_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Driver_ClassRec, bdf_driver_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Module_Class, psaux_module_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Module_Class, psnames_module_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Module_Class, pshinter_module_class )
++#endif
+ FT_USE_MODULE( FT_Module_Class, sfnt_module_class )
+ FT_USE_MODULE( FT_Renderer_Class, ft_smooth_renderer_class )
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Renderer_Class, ft_raster1_renderer_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Renderer_Class, ft_sdf_renderer_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Renderer_Class, ft_bitmap_sdf_renderer_class )
++#endif
++#ifndef GODOT_FREETYPE_MINIMAL
+ FT_USE_MODULE( FT_Renderer_Class, ft_svg_renderer_class )
++#endif
+ 
+ /* EOF */
+diff --git a/thirdparty/freetype/include/freetype/config/ftoption.h b/thirdparty/freetype/include/freetype/config/ftoption.h
+index eb4e32d..94deb10 100644
+--- a/thirdparty/freetype/include/freetype/config/ftoption.h
++++ b/thirdparty/freetype/include/freetype/config/ftoption.h
+@@ -180,7 +180,9 @@ FT_BEGIN_HEADER
+    *
+    *   Define this macro if you want to enable this 'feature'.
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define FT_CONFIG_OPTION_USE_LZW
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -195,7 +197,9 @@ FT_BEGIN_HEADER
+    *   Define this macro if you want to enable this 'feature'.  See also the
+    *   macro `FT_CONFIG_OPTION_SYSTEM_ZLIB` below.
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define FT_CONFIG_OPTION_USE_ZLIB
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -331,7 +335,9 @@ FT_BEGIN_HEADER
+    *   You would normally undefine this configuration macro when building a
+    *   version of FreeType that doesn't contain a Type~1 or CFF driver.
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define FT_CONFIG_OPTION_POSTSCRIPT_NAMES
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -348,7 +354,9 @@ FT_BEGIN_HEADER
+    *   in your 'psnames' module.  The Type~1 driver will not be able to
+    *   synthesize a Unicode charmap out of the glyphs found in the fonts.
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define FT_CONFIG_OPTION_ADOBE_GLYPH_LIST
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -361,7 +369,9 @@ FT_BEGIN_HEADER
+    *
+    *   Note that the 'FOND' resource isn't checked.
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define FT_CONFIG_OPTION_MAC_FONTS
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -381,7 +391,9 @@ FT_BEGIN_HEADER
+    *   the `FT_CONFIG_OPTION_MAC_FONTS` option.
+    */
+ #ifdef FT_CONFIG_OPTION_MAC_FONTS
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define FT_CONFIG_OPTION_GUESSING_EMBEDDED_RFORK
++#endif
+ #endif
+ 
+ 
+@@ -393,7 +405,9 @@ FT_BEGIN_HEADER
+    * incrementally as the document is parsed, such as the Ghostscript
+    * interpreter for the PostScript language.
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define FT_CONFIG_OPTION_INCREMENTAL
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -538,7 +552,9 @@ FT_BEGIN_HEADER
+    *
+    *   More details on the hooks can be found in file `otsvg.h`.
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define FT_CONFIG_OPTION_SVG
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -569,7 +585,9 @@ FT_BEGIN_HEADER
+    * embedded bitmaps in all formats using the 'sfnt' module (namely
+    * TrueType~& OpenType).
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define TT_CONFIG_OPTION_EMBEDDED_BITMAPS
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -578,7 +596,9 @@ FT_BEGIN_HEADER
+    * outlines (from the 'COLR'/'CPAL' tables) in all formats using the 'sfnt'
+    * module (namely TrueType~& OpenType).
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define TT_CONFIG_OPTION_COLOR_LAYERS
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -593,7 +613,9 @@ FT_BEGIN_HEADER
+    *
+    * (By default, the module uses 'psnames' to extract glyph names.)
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define TT_CONFIG_OPTION_POSTSCRIPT_NAMES
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -647,7 +669,9 @@ FT_BEGIN_HEADER
+    * Do not `#undef` this macro here, since the build system might define it
+    * for certain configurations only.
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define TT_CONFIG_OPTION_BYTECODE_INTERPRETER
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -681,7 +705,9 @@ FT_BEGIN_HEADER
+    * [1]
+    * https://www.microsoft.com/typography/cleartype/truetypecleartype.aspx
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define TT_CONFIG_OPTION_SUBPIXEL_HINTING
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -710,7 +736,9 @@ FT_BEGIN_HEADER
+    * 'avar' tables).  Tagged 'Font Variations', this is now part of OpenType
+    * also.  This has many similarities to Type~1 Multiple Masters support.
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define TT_CONFIG_OPTION_GX_VAR_SUPPORT
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -736,7 +764,9 @@ FT_BEGIN_HEADER
+    * Define `TT_CONFIG_OPTION_BDF` if you want to include support for an
+    * embedded 'BDF~' table within SFNT-based bitmap formats.
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define TT_CONFIG_OPTION_BDF
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -920,7 +950,9 @@ FT_BEGIN_HEADER
+    * Compile 'autofit' module with CJK (Chinese, Japanese, Korean) script
+    * support.
+    */
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define AF_CONFIG_OPTION_CJK
++#endif
+ 
+ 
+   /**************************************************************************
+@@ -930,7 +962,9 @@ FT_BEGIN_HEADER
+    * (yet) handle.  Currently, this needs option `AF_CONFIG_OPTION_CJK`.
+    */
+ #ifdef AF_CONFIG_OPTION_CJK
++#ifndef GODOT_FREETYPE_MINIMAL
+ #define AF_CONFIG_OPTION_INDIC
++#endif
+ #endif
+ 
+ 
