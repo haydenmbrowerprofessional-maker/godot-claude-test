@@ -38,6 +38,9 @@ for platform in "$@"; do
 	echo "=== building $platform template ==="
 	extra=()
 	[ "$platform" = "web" ] && extra+=(threads=no)
+	# MSVC: /Gw lets the linker drop unreferenced data, /Ob1 only inlines functions
+	# marked inline. -443 KB; frame times measured unchanged (tools/perf_probe.gd).
+	[ "$platform" = "windows" ] && extra+=("ccflags=/Gw /Ob1")
 	(cd "$src" && MSYS_NO_PATHCONV=1 python -m SCons platform="$platform" target=template_release \
 		"profile=$here/custom.py" "build_profile=$here/build_profile.gdbuild" "${extra[@]}" -j"$jobs")
 	case "$platform" in
