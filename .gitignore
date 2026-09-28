@@ -3,3 +3,6 @@
 
 # Exported builds (published as GitHub Releases instead)
 build/
+
+# Custom-compiled export templates (built from engine/custom.py)
+engine/templates/

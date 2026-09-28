@@ -16,7 +16,7 @@ var _dirty := false
 
 
 func _ready() -> void:
-	_img = Image.create(RES, RES, false, Image.FORMAT_R8)
+	_img = Image.create_empty(RES, RES, false, Image.FORMAT_R8)
 	_tex = ImageTexture.create_from_image(_img)
 	var mat := material_override as ShaderMaterial
 	mat.set_shader_parameter("mask", _tex)

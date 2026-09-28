@@ -292,7 +292,7 @@ func _refresh_upgrade_panel() -> void:
 		$HUD.show_upgrade(info + "\nNext tier needs a Workshop", "Upgrade", false)
 	else:
 		var next_name: String = Tower.LEVELS[t.level]["name"]
-		$HUD.show_upgrade(info, "Upgrade → %s" % next_name, true)
+		$HUD.show_upgrade(info, "Upgrade to %s" % next_name, true)
 
 
 func _upgrade_allowed(t: Tower) -> bool:

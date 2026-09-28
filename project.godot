@@ -49,8 +49,13 @@ camera_back={
 ]
 }
 
+[gui]
+
+theme/custom_font="res://assets/fonts/ui_font.ttf"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/lossless_compression/force_png=true
 environment/defaults/default_clear_color=Color(0.32, 0.42, 0.52, 1)
